@@ -60,8 +60,7 @@ namespace SpyDuhApiProject2.DataAccess
             command.Parameters.AddWithValue("Alias", newSpyDuhMember.Alias);
             command.Parameters.AddWithValue("AboutMe", newSpyDuhMember.AboutMe);
 
-            var newId = (Guid)command.ExecuteScalar();
-            newSpyDuhMember.Id = newId;
+            command.ExecuteNonQuery();
           
         }
 
@@ -119,7 +118,7 @@ namespace SpyDuhApiProject2.DataAccess
             return null;
         }
 
-        internal void AddFriendToSpyDuhAccount(Guid accountId, Guid friendId)
+        internal object AddFriendToSpyDuhAccount(Guid accountToUpdateId, Guid newFriendId)
         {
             using var connection = new SqlConnection(_connectionString);
             connection.Open();
@@ -127,14 +126,21 @@ namespace SpyDuhApiProject2.DataAccess
             var command = connection.CreateCommand();
             command.CommandText = @"update SpyDuhMembers
                                     Set FriendsId = @FriendsId
+                                    Output inserted.*
                                     where Id = @Id";
 
-            command.Parameters.AddWithValue("FriendsId", friendId);
-            command.Parameters.AddWithValue("Id", accountId);
+            command.Parameters.AddWithValue("FriendsId", accountToUpdateId);
+            command.Parameters.AddWithValue("Id", newFriendId);
 
-            //var repo = new SpyDuhMembersRepository();
-            //var spyDuhMember = repo.GetById(accountId);
-            //spyDuhMember.Friends.Add(friendId);
+            var reader = command.ExecuteReader();
+
+            if (reader.Read())
+            {
+                var updatedMember = MapFromReader(reader);
+                return updatedMember;
+            }
+
+            return null;
         }
         //internal void RemoveFriendFromSpyDuhAccount(Guid accountId, Guid friendId)
         //{
